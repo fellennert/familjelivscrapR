@@ -3,4 +3,5 @@
 export("%>%")
 export(get_main_sections)
 export(get_threads)
+export(scrape_thread)
 importFrom(magrittr,"%>%")

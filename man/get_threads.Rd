@@ -20,7 +20,7 @@ be returned. Defaults to "2020-01-01".}
 
 \item{latest_entry}{A character string of a date in the format "YYYY-MM-DD".
 Only links to threads whose latest entry was posted on or after this very
-date are returned,}
+date are returned.}
 }
 \value{
 A tibble with three columns. \code{link} contains the thread's link,

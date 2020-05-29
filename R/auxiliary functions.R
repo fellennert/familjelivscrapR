@@ -61,12 +61,10 @@ get_latest_entry <- function(page) {
 # get thread's n pages
 
 get_n_pages_thread <- function(thread_link) {
-  n <- xml2::read_html(thread_link) %>%
-    rvest::html_node("#formupdate .selected a")
-
+  xml2::read_html(thread_link) %>%
+    rvest::html_node("#formupdate .selected a") %>%
+    rvest::html_text()
 }
-
-thread_link <- "http://gamla.familjeliv.se/Forum-19-89/m80345588.html"
 
 # (1) create list of singular thread-pages
 build_links_for_threads <- function(thread_link, n_pages) {
@@ -79,10 +77,6 @@ build_links_for_threads <- function(thread_link, n_pages) {
   return(links)
 }
 
-# (2) read page
-for (i in seq_along(thread_links)) {
-  thread_page <- xml2::read_html(thread_links[i])
-}
 
 # (3) get content
 # (3.1) date
