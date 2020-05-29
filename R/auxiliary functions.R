@@ -232,13 +232,3 @@ remove_quotes <- function(quotes, output_tbl) {
     dplyr::arrange(date, time)
   return(output_tbl)
 }
-
-unify_vector_length <- function(date, time, author, content) {
-  list <- list(date, time, author, content)
-  max <- max(lengths(list))
-  for (i in seq_along(1:4)) {
-    length(list[[i]]) <- max
-  }
-  return(list)
-}
-

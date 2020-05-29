@@ -18,8 +18,8 @@
 #' remove the quotes in a reasonable manner. If the function is successful,
 #' postings without quotes (either because they did not contain one in the first
 #' place or because the function worked properly) can be found in
-#' \code{content_wo_quote}. If the function was not successful, entries begin
-#' with "!!!flawed citation!!!".
+#' \code{content_wo_quote}. If the function was not successful, yet there is a
+#' citation present, entries in this column start with "!!!flawed citation!!!".
 #'
 #' @examples
 #' scrape_thread(thread_link, quote = FALSE)
