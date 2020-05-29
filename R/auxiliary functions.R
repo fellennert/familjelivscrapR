@@ -66,20 +66,20 @@ get_n_pages_thread <- function(thread_link) {
     rvest::html_text()
 }
 
-# (1) create list of singular thread-pages
+# create list of singular thread-pages
 build_links_for_threads <- function(thread_link, n_pages) {
   n <- 1:n_pages
   temp_link <- stringr::str_sub(thread_link, end=-6)
   links <- character(length = length(n))
   for (i in seq_along(n)) {
-    links[i] <- paste0("http://gamla.familjeliv.se", temp_link, "-", n[[i]], ".html")
+    links[i] <- paste0(temp_link, "-", n[[i]], ".html")
   }
   return(links)
 }
 
 
-# (3) get content
-# (3.1) date
+# get content
+# date and time
 get_date_time <- function(thread_page, url) {
   today <- as.character(lubridate::today())
   yesterday <- as.character(lubridate::today()-1)
@@ -139,7 +139,7 @@ get_date_time <- function(thread_page, url) {
 }
 
 
-# (3.2) author's name
+# author's name
 
 get_author <- function(thread_page, url) {
   author <- rvest::html_nodes(thread_page, ".compose_avatar_nick") %>%
@@ -154,7 +154,7 @@ get_author <- function(thread_page, url) {
   return(author)
 }
 
-# (3.3) content
+# content
 
 get_textual_content <- function(thread_page, url) {
   text <- rvest::html_nodes(thread_page, ".message") %>%
@@ -162,7 +162,6 @@ get_textual_content <- function(thread_page, url) {
     stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_remove_all("\t") %>%
-    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
     stringr::str_squish()
 
   if (stringr::str_detect(url, "-1.html$") == FALSE) {
@@ -171,99 +170,29 @@ get_textual_content <- function(thread_page, url) {
   return(text)
 }
 
-# (3.5) quotes
+# output list
 
-get_quotes <- function (thread_page) {
-  quotes <- rvest::html_nodes(thread_page, ".quote") %>%
-    rvest::html_text() %>%
-    stringr::str_trim() %>%
-    stringr::str_remove_all("\n") %>%
-    stringr::str_remove_all("\t") %>%
-    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
-    stringr::str_squish()
-  return(quotes)
-}
-
-# (4.) bind it together
-
-#output_tbl <- bind_rows(output_tbl, temp_tbl)
-#quotes <- quotes_list %>% unlist()
-
-# (5.) remove quotes
-
-remove_quotes <- function(quotes, output_tbl) {
-
-  for (j in seq_along(quotes)) {
-    quotes[j] <- stringr::str_sub(quotes[j], start=-(2/3*stringr::str_length(quotes[j])))
-  }
-
-  output_tbl %<>%
-    dplyr::mutate(quote_bin = dplyr::if_else(stringr::str_detect(content, "skrev.....................följande"),
-                               1,
-                               0),
-           author = dplyr::if_else(stringr::str_detect(author, "Anonym \\("),
-                            NA_character_,
-                            author)) %>%
-    dplyr::distinct()
-  output_w_quote <- output_tbl %>%
-    dplyr::filter(quote_bin == 1)
-  output_wo_quote <- output_tbl %>%
-    dplyr::filter(quote_bin == 0)
-  pattern <- paste(quotes, collapse = '|')
-  output_w_quote$content_wo_quote <- character(length = nrow(output_w_quote))
-  if (nrow(output_w_quote) > 0) {
-    for (i in 1:nrow(output_w_quote)) {
-      if (length(stringr::str_split(output_w_quote$content[i], pattern = pattern, n = 2)[[1]]) == 2) {
-        output_w_quote$content_wo_quote <- stringr::str_split(output_w_quote$content[i], pattern = pattern, n = 2)[[1]][[2]]
-      } else {
-        output_w_quote$content_wo_quote[i] <- paste0("flawed citation", output_w_quote$content[i])
-      }
-    }
-  }
-
-  output_wo_quote$content_wo_quote <- output_wo_quote$content
-  output_tbl <- dplyr::bind_rows(output_w_quote, output_wo_quote) %>%
-    dplyr::distinct(content_wo_quote, .keep_all = TRUE) %>%
-    dplyr::arrange(date, time)
-  return(output_tbl)
-}
-
-
-### final scrape function ###
-
-scrape_thread <- function(thread_link, n_pages) {
-
-  url_list <- build_links_for_threads(thread_link = thread_link, n_pages = n_pages)
-
-  output_list <- list()
-  quotes_list <- list()
-
-  for (i in seq_along(url_list)) {
-    thread_page <- xml2::read_html(url_list[[i]])
-    output_list[[i]] <- tibble(
+get_output <- function(thread_link) {
+  thread_page <- xml2::read_html(thread_link)
+  tibble::tibble(
       thread = thread_link,
-      date = get_date(thread_page = thread_page, url = url_list[[i]]),
-      time = get_time(thread_page = thread_page, url = url_list[[i]]),
-      author = get_author(thread_page = thread_page, url = url_list[[i]]),
-      content = get_textual_content(thread_page = thread_page, url = url_list[[i]])
-    )
-    quotes_list[[i]] <- get_quotes(thread_page = thread_page)
-  }
-
-  output_tbl <- bind_rows(output_list)
-  quotes <- quotes_list %>% unlist()
-  quotes <- quotes[quotes != ""]
-
-  if (length(quotes) == 0) {
-    return(output_tbl)
-  } else {
-    return(remove_quotes(quotes = quotes, output_tbl = output_tbl))
-  }
+      date = get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(1),
+      time = get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(2),
+      author = get_author(thread_page = thread_page, url = thread_link),
+      content = get_textual_content(thread_page = thread_page, url = thread_link)
+    ) %>%
+    dplyr::mutate(quote_ind = dplyr::if_else(stringr::str_detect(content, "skrev.....................följande"),
+                                             1,
+                                             0),
+                  author = dplyr::if_else(stringr::str_detect(author, "Anonym \\("),
+                                          NA_character_,
+                                          author))
 }
 
-
+test <- get_output(thread_link)
 
 ### scrape thread for badly-behaved threads
+
 unify_vector_length <- function(date, time, author, content) {
   list <- list(date, time, author, content)
   max <- max(lengths(list))
