@@ -18,14 +18,18 @@
 #' remove the quotes in a reasonable manner. If the function is successful,
 #' postings without quotes (either because they did not contain one in the first
 #' place or because the function worked properly) can be found in
-#' \code{content_wo_quote}. If the function was not successful, yet there is a
-#' citation present, entries in this column start with "!!!flawed citation!!!".
+#' \code{content_wo_quote}. If the function was not successful, the entries
+#' where it failed at are also in this column -- probably still contaning the
+#' citation -- and devtoolsstart with "!!!flawed citation!!!".
 #'
 #' @examples
-#' scrape_thread(thread_link, quote = FALSE)
+#' scrape_thread("/Forum-27-260/m49908859.html", quote = FALSE)
 #'
 #' @export
 scrape_thread <- function(thread_link, quotes = TRUE) {
+  if (stringr::str_detect(thread_link, "^\/Forum") == TRUE) {
+    thread_link <- paste0("gamla.familjeliv.se", thread_link)
+  }
   n_pages <- get_n_pages_thread(thread_link)
   links <- build_links_for_threads(thread_link, n_pages)
   output_tbl <- purrr::map_dfr(links, get_output)
