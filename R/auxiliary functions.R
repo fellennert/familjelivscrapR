@@ -5,7 +5,7 @@
 # get n_pages
 
 get_n_pages <- function(page) {
-  n_threads <- rvest::html_nodes(page, ".threads stringr::strong") %>%
+  n_threads <- rvest::html_nodes(page, ".threads strong") %>%
     rvest::html_text() %>%
     as.numeric()
   n_pages <- floor(n_threads/20+1)
@@ -46,7 +46,7 @@ get_start_date <- function(page) {
 # get threads' latest entry
 
 get_latest_entry <- function(page) {
-  latest_entry <- rvest::html_nodes(page, ".forumListing-latestreply .stamp") %>%
+  latest_entry <- rvest::html_nodes(page, ".forumListing-latestReply .stamp") %>%
     rvest::html_text()
   for (i in seq_along(latest_entry)) {
     if (stringr::str_detect(latest_entry[[i]], "Idag") == TRUE) latest_entry[[i]] <- as.character(lubridate::today())

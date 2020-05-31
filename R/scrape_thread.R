@@ -26,10 +26,8 @@
 #' scrape_thread("/Forum-27-260/m49908859.html", quote = FALSE)
 #'
 #' @export
-scrape_thread <- function(thread_link, quotes = TRUE) {
-  if (stringr::str_detect(thread_link, "^\/Forum") == TRUE) {
-    thread_link <- paste0("gamla.familjeliv.se", thread_link)
-  }
+scrape_thread <- function(suffix, quotes = TRUE) {
+  thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   n_pages <- get_n_pages_thread(thread_link)
   links <- build_links_for_threads(thread_link, n_pages)
   output_tbl <- purrr::map_dfr(links, get_output)
@@ -42,5 +40,3 @@ scrape_thread <- function(thread_link, quotes = TRUE) {
     return(remove_quotes(quote_vec, output_tbl))
   }
 }
-
-
