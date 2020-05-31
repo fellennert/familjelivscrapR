@@ -8,24 +8,27 @@
 #' the section's name, the latter its link's suffix.
 #'
 #' @examples
-#' get_sections()
+#' get_main_sections()
 #'
 #' @export
-get_sections <-
-  function (mainpage = "http://gamla.familjeliv.se/Forum-5-0/") {
+get_main_sections <-
+  function (mainpage = "http://gamla.familjeliv.se/Forum-0-0/") {
 
     page <- xml2::read_html(mainpage)
 
     main_section <-
-      rvest::html_nodes(page, ".level4") %>%
+      rvest::html_nodes(page, ".level2") %>%
       rvest::html_text()
     main_section <- main_section[!stringr::str_detect(main_section, "^\\n")]
-    main_section <- main_section[c(TRUE, FALSE)]
+    main_section <- main_section[which(main_section %in% "Kategorier")+1:length(main_section)]
+    main_section <- unique(main_section)
+    main_section <- main_section[!is.na(main_section)]
 
     main_urls <-
-      rvest::html_nodes(page, ".level4") %>%
+      rvest::html_nodes(page, ".level2") %>%
       rvest::html_attr("href")
     main_urls <- main_urls[!is.na(main_urls)]
+    main_urls <- main_urls[which(main_urls %in% "/Forum-5-0/"):length(main_urls)]
 
     return(tibble::tibble(
       name = main_section,

@@ -29,6 +29,7 @@
 scrape_thread <- function(suffix, quotes = TRUE) {
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   n_pages <- get_n_pages_thread(thread_link)
+  if (is.na(n_pages) == TRUE) n_pages <- 1
   links <- build_links_for_threads(thread_link, n_pages)
   output_tbl <- purrr::map_dfr(links, get_output)
   if (quotes == TRUE) return(output_tbl)

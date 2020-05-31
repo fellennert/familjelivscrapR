@@ -25,6 +25,7 @@ get_threads <- function(suffix, thread_start_date = "2000-01-01", latest_entry =
   i <- 0
 
   thread_links <- vector("list", length = n_pages)
+  thread_names <- vector("list", length = n_pages)
   thread_start_dates <- vector("list", length = n_pages)
   latest_entry_dates <- vector("list", length = n_pages)
   date_ind <- lubridate::today()
@@ -35,6 +36,7 @@ get_threads <- function(suffix, thread_start_date = "2000-01-01", latest_entry =
     page <- xml2::read_html(links[[i]])
 
     thread_links[[i]] <- get_thread_links(page)
+    thread_names[[i]] <- get_thread_names(page)
     thread_start_dates[[i]] <- get_start_date(page)
     latest_entry_dates[[i]] <- get_latest_entry(page)
 
@@ -43,6 +45,7 @@ get_threads <- function(suffix, thread_start_date = "2000-01-01", latest_entry =
   }
   return(tibble::tibble(
     link = thread_links %>% purrr::compact() %>% purrr::reduce(c),
+    name = thread_names %>% purrr::compact() %>% purrr::reduce(c),
     start_date = thread_start_dates %>% purrr::compact() %>% purrr::reduce(c),
     latest_entry = latest_entry_dates %>% purrr::compact() %>% purrr::reduce(c)
     ) %>%

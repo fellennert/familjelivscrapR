@@ -22,7 +22,7 @@ library(familjelivscrapR)
 
 This vignette's goal is to enable you to use `familjelivscrapR` in a meaningful way. In order to achieve this, its functionality and the rationale behind it are to be described. First, a brief overview of the structure of <gamla.familjeliv.se> is given. Please note that familjeliv.se and gamla.familjeliv.se are identical in their structure and content, but not in their "scrapability" -- familjeliv.se, for instance, limits the number of thread pages you can go back in time to 100 -- gamla.familjeliv.se doesn't. Second, the functions of `familjelivscrapR` are described. Third, examples are provided which show how to use it. 
 
-## The structure of gamla.familjeliv.se
+# The structure of gamla.familjeliv.se
 
 Figure 1 depicts the structure of www.familjeliv.se.
 
@@ -30,8 +30,40 @@ Figure 1 depicts the structure of www.familjeliv.se.
 
 It is extremely simple: there are sections which contain threads. In theory, sections are clustered as well, but in practice, no list can be obtained -- hence, this can be ignored.
 
-## The functions
+# The functions
 
 A tibble containing the main sections' names and urls can be obtained using `get_sections()`.     
 `get_threads` returns the threads within one section. The function takes needs at least one argument: the section's suffix (e.g., "/Forum-19-89/"). The arguments `thread_start_date` and `latest_entry` can be used to specify the search. The former corresponds to when the thread was started, the latter to the time point at which the latest posting was added to the thread. Their need to be entered as chaeracter strings, formatted like "YYYY-MM-DD". 
 `scrape_threads()` then returns a thread's content. It takes two arguments. `suffix` is the suffix of the thread to be scraped (e.g., "Forum-27-260/m49908859.html"). There is also a rudimentary feature to remove quotes in the postings (e.g., so there is no double-counting). It is deactivated by default. However, it can be activated by setting `quotes = TRUE`.
+
+# Exemplary workflow
+
+Due to its simple forum structure, there are not many possibilities when it comes to scraping familjeliv. In the following, I will show how you could go across scraping postings that relate to the COVID-19 pandemic in Sweden. I will perform data wrangling using `dplyr` and other packages from the `tidyverse`. As I want scrape multiple links, I need functions that iterate over them. I will use the `purrr` package for this. An introduction to this *tidy* approach to using R can be found in Hadley Wickham's and Garrett Grolemund's "R for Data Science" [which can be found online](http://r4ds.had.co.nz/), too. However, you could also perform these operations using Base R and the apply family (or simple loops).
+I am interested in postings fthat are in economy and society sections. First, I need to acquire this section's suffix. There are multiple main sections in the familjeliv forum. I will scrape them all and extract the links for the sections that contain the terms "samhälle" or "ekonomi":
+
+```{r}
+(section_suffix <- get_main_sections() %>%
+  dplyr::pull(suffix) %>% 
+  purrr::map_dfr(get_sub_sections) %>% 
+  dplyr::filter(stringr::str_detect(name, stringr::fixed("samhälle", ignore_case = TRUE)) |
+                  stringr::str_detect(name, stringr::fixed("ekonomi", ignore_case = TRUE))) %>% 
+  dplyr::pull(suffix))
+```
+
+The second step now is to get all the threads that are within this section. Thereafter, I can filter the ones out whose names do not contain relevant keywords. However, the Corona pandemic really started to gain traction in the public discourse in mid February. Hence, I do not need to scrape threads that were started before February 1. I can achieve this by providing the date in the `thread_start_date()` argument. Thereafter, I look for keywords that hint on COVID19-related content.
+
+```{r warning=FALSE}
+covid_keywords <- paste(c("corona", "pandemi", "covid"), sep = "|")
+(threads <- purrr::map_dfr(section_suffix, ~{
+  get_threads(suffix = .x, thread_start_date = "2020-02-01")
+  }) %>% 
+  dplyr::filter(stringr::str_detect(name, stringr::regex(covid_keywords, ignore_case = TRUE))) %>% 
+  dplyr::pull(link))
+```
+
+Now, the threads can be scraped (disclaimer: because they have to be scraped from anew every time this document is knitted, I will just exemplify the process by scraping two of them):
+
+```{r}
+(covid_content <- purrr::map_dfr(threads[13:15], scrape_thread))
+```
+

@@ -27,9 +27,15 @@ build_links_section <- function(suffix, n_pages) {
 # get threads' links
 
 get_thread_links <- function(page) {
-  links <- rvest::html_nodes(page, ".forumListing-thread a") %>%
+  rvest::html_nodes(page, ".forumListing-thread a") %>%
     rvest::html_attr("href")
-  return(links)
+}
+
+# get threads' name
+
+get_thread_names <- function(page) {
+  rvest::html_nodes(page, ".forumListing-thread a") %>%
+    rvest::html_text()
 }
 
 # get threads' start date
