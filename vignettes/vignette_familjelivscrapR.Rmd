@@ -64,6 +64,6 @@ covid_keywords <- paste(c("corona", "pandemi", "covid"), sep = "|")
 Now, the threads can be scraped (disclaimer: because they have to be scraped from anew every time this document is knitted, I will just exemplify the process by scraping two of them):
 
 ```{r}
-(covid_content <- purrr::map_dfr(threads[13:15], scrape_thread))
+(covid_content <- purrr::map_dfr(threads[1:2], scrape_thread))
 ```
 

@@ -16,7 +16,7 @@ get_threads(
 
 \item{thread_start_date}{A character string of a date in the format
 "YYYY-MM-DD". Links to threads which were started before this date will not
-be returned. Defaults to "2020-01-01".}
+be returned. Defaults to "2000-01-01".}
 
 \item{latest_entry}{A character string of a date in the format "YYYY-MM-DD".
 Only links to threads whose latest entry was posted on or after this very

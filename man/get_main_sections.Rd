@@ -4,7 +4,7 @@
 \alias{get_main_sections}
 \title{Get main sections}
 \usage{
-get_main_sections(mainpage = "http://gamla.familjeliv.se/Forum-5-0/")
+get_main_sections(mainpage = "http://gamla.familjeliv.se/Forum-0-0/")
 }
 \arguments{
 \item{mainpage}{The gamla.familjeliv.se forum page; default value suffices.}
