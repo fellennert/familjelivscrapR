@@ -39,7 +39,7 @@ A tibble containing the main sections' names and urls can be obtained using `get
 # Exemplary workflow
 
 Due to its simple forum structure, there are not many possibilities when it comes to scraping familjeliv. In the following, I will show how you could go across scraping postings that relate to the COVID-19 pandemic in Sweden. I will perform data wrangling using `dplyr` and other packages from the `tidyverse`. As I want scrape multiple links, I need functions that iterate over them. I will use the `purrr` package for this. An introduction to this *tidy* approach to using R can be found in Hadley Wickham's and Garrett Grolemund's "R for Data Science" [which can be found online](http://r4ds.had.co.nz/), too. However, you could also perform these operations using Base R and the apply family (or simple loops).
-I am interested in postings fthat are in economy and society sections. First, I need to acquire this section's suffix. There are multiple main sections in the familjeliv forum. I will scrape them all and extract the links for the sections that contain the terms "samhälle" or "ekonomi":
+I am interested in postings that are in economy and society sections. First, I need to acquire this section's suffix. There are multiple main sections in the familjeliv forum. I will scrape them all and extract the links for the sections that contain the terms "samhälle" or "ekonomi":
 
 ```{r}
 (section_suffix <- get_main_sections() %>%
@@ -55,15 +55,15 @@ The second step now is to get all the threads that are within this section. Ther
 ```{r warning=FALSE}
 covid_keywords <- paste(c("corona", "pandemi", "covid"), sep = "|")
 (threads <- purrr::map_dfr(section_suffix, ~{
-  get_threads(suffix = .x, thread_start_date = "2020-02-01")
+  get_threads(suffix = .x, thread_start_date = lubridate.:today()-days(7))
   }) %>% 
   dplyr::filter(stringr::str_detect(name, stringr::regex(covid_keywords, ignore_case = TRUE))) %>% 
   dplyr::pull(link))
 ```
 
-Now, the threads can be scraped (disclaimer: because they have to be scraped from anew every time this document is knitted, I will just exemplify the process by scraping two of them):
+Now, the threads can be scraped (disclaimer: because they have to be scraped from anew every time this document is knitted, I will just exemplify the process by scraping one of them):
 
 ```{r}
-(covid_content <- purrr::map_dfr(threads[1:2], scrape_thread))
+(covid_content <- purrr::map_dfr(threads[1], scrape_thread))
 ```
 
