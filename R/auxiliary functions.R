@@ -162,7 +162,7 @@ get_author <- function(thread_page, url) {
 
 # content
 
-get_textual_content <- function(thread_page, url) {
+get_textual_content <- function(thread_page, url, length) {
   text <- rvest::html_nodes(thread_page, ".message") %>%
     rvest::html_text() %>%
     stringr::str_trim() %>%
@@ -173,6 +173,9 @@ get_textual_content <- function(thread_page, url) {
   if (stringr::str_detect(url, "-1.html$") == FALSE) {
     text <- text[-1]
   }
+  if (length(text) != length) {
+    text <- text[1:length]
+  }
   return(text)
 }
 
@@ -180,12 +183,13 @@ get_textual_content <- function(thread_page, url) {
 
 get_output <- function(thread_link) {
   thread_page <- xml2::read_html(thread_link)
+  date <- get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(1)
   tibble::tibble(
       thread = thread_link,
-      date = get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(1),
+      date = date,
       time = get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(2),
       author = get_author(thread_page = thread_page, url = thread_link),
-      content = get_textual_content(thread_page = thread_page, url = thread_link)
+      content = get_textual_content(thread_page = thread_page, url = thread_link, length = length(date))
     ) %>%
     dplyr::mutate(quote_ind = dplyr::if_else(stringr::str_detect(content, "skrev.....................följande"),
                                              1,
