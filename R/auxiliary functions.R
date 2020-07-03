@@ -148,7 +148,7 @@ get_date_time <- function(thread_page, url) {
 # author's name
 
 get_author <- function(thread_page, url) {
-  author <- rvest::html_nodes(thread_page, ".compose_avatar_nick") %>%
+  author <- rvest::html_nodes(thread_page, ".compose_avatar_image .compose_avatar_nick") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim()
