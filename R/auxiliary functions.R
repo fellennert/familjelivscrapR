@@ -228,7 +228,7 @@ remove_quotes <- function(quotes, output_tbl) {
 
   if (nrow(output_w_quote) > 0) {
     for (i in 1:nrow(output_w_quote)) {
-      if (length(stringr::str_split(output_w_quote$content[i], pattern = fixed(pattern), n = 2))[[1]] == 2) {
+      if (length(stringr::str_split(output_w_quote$content[i], pattern = stringr::fixed(pattern), n = 2))[[1]] == 2) {
         output_w_quote$content_wo_quote[i] <- stringr::str_split(output_w_quote$content[i], pattern = fixed(pattern), n = 2)[[1]][[2]]
       } else {
         output_w_quote$content_wo_quote[i] <- paste0("!!!flawed citation!!!", output_w_quote$content[i])
