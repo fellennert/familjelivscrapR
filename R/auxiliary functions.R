@@ -97,7 +97,7 @@ get_date_time <- function(thread_page, url) {
   )
   month_pattern <- paste(months_tbl$months_chr, collapse = "|")
 
-  date <- rvest::html_nodes(thread_page, ".date") %>%
+  date <- rvest::html_nodes(thread_page, ".entry-info .date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim() %>%
