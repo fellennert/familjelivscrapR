@@ -116,6 +116,7 @@ get_date_time <- function(thread_page, url) {
 
   if (stringr::str_detect(url, "-1.html$")) {
     date <- c(top_date, date)
+    reply_number <- c(1, reply_number)
   }
 
   date_tbl <- tibble::tibble(date = date, reply_number = reply_number) %>%
