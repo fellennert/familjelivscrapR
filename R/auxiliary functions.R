@@ -143,8 +143,11 @@ get_date_time <- function(thread_page, url) {
                               as.integer(date_day)),
            date = paste(date_year, date_month, date_day, sep = "-")) %>%
     dplyr::select(date, time, reply_number) %>%
-    dplyr::filter(!is.na(date) & !is.na(time)) %>%
-    dplyr::filter(reply_number >= reference)
+    dplyr::filter(!is.na(date) & !is.na(time))
+
+  if (stringr::str_detect(url, "-1.html$") == FALSE) {
+    date_tbl <- dplyr::filter(date_tbl, reply_number >= reference)
+  }
 
   return(date_tbl)
 }
