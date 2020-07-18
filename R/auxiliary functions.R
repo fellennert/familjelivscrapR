@@ -97,7 +97,7 @@ get_date_time <- function(thread_page, url) {
   )
   month_pattern <- paste(months_tbl$months_chr, collapse = "|")
 
-  date <- rvest::html_nodes(thread_page, ".entry-message-arrow+ .entry-message .date") %>%
+  date <- rvest::html_nodes(thread_page, ".entry-info .date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim() %>%
@@ -111,6 +111,7 @@ get_date_time <- function(thread_page, url) {
 
   reference <- reply_number[[1]]
 
+  if (length(reply_number) > length(date)) reply_number <- reply_number[-order(reply_number)[1]]
   top_date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
     rvest::html_text()
 
