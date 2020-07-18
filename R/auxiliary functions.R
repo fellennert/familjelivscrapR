@@ -97,13 +97,19 @@ get_date_time <- function(thread_page, url) {
   )
   month_pattern <- paste(months_tbl$months_chr, collapse = "|")
 
-  date <- rvest::html_nodes(thread_page, ".icon+ .date") %>%
+  date <- rvest::html_nodes(thread_page, ".entry-message-arrow+ .entry-message .date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim() %>%
     stringr::str_split_fixed("×", 2)
 
   date <- date[, 1]
+
+  reply_number <- rvest::html_nodes(thread_page, ".reply-number") %>%
+    rvest::html_text() %>%
+    readr::parse_number()
+
+  reference <- reply_number[[1]]
 
   top_date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
     rvest::html_text()
@@ -112,12 +118,11 @@ get_date_time <- function(thread_page, url) {
     date <- c(top_date, date)
   }
 
-  date_tbl <- tibble::enframe(date) %>%
-    dplyr::select(value) %>%
-    dplyr::mutate(V1 = paste0(value, "#0"))%>%
-    dplyr::mutate(time = stringr::str_extract(V1, "([0-2][0-9][:][0-5][0-9])"),
-           post_number = purrr::map_chr(stringr::str_split(V1, "#"), 2),
-           date = purrr::map_chr(stringr::str_split(V1, "([0-2][0-9][:][0-5][0-9])"), 1),
+  date_tbl <- tibble::tibble(date = date, reply_number = reply_number) %>%
+    dplyr::mutate(date = paste0(date, "#0"))%>%
+    dplyr::mutate(time = stringr::str_extract(date, "([0-2][0-9][:][0-5][0-9])"),
+           post_number = purrr::map_chr(stringr::str_split(date, "#"), 2),
+           date = purrr::map_chr(stringr::str_split(date, "([0-2][0-9][:][0-5][0-9])"), 1),
            date_numeric = dplyr::case_when(stringr::str_detect(date, "Idag") ~ today,
                                     stringr::str_detect(date, "Igår") ~ yesterday,
                                     stringr::str_detect(date, "I förrgår") ~ day_before_yesterday),
@@ -137,9 +142,9 @@ get_date_time <- function(thread_page, url) {
                               lubridate::day(date_numeric),
                               as.integer(date_day)),
            date = paste(date_year, date_month, date_day, sep = "-")) %>%
-    dplyr::select(date, time) %>%
+    dplyr::select(date, time, reply_number) %>%
     dplyr::filter(!is.na(date) & !is.na(time)) %>%
-    dplyr::mutate(date = lubridate::ymd(date))
+    dplyr::filter(reply_number >= reference)
 
   return(date_tbl)
 }
