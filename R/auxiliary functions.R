@@ -193,12 +193,21 @@ get_textual_content <- function(thread_page, url, length) {
 get_output <- function(thread_link) {
   thread_page <- xml2::read_html(thread_link)
   date <- get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(1)
+  time <- get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(2)
+  author <- get_author(thread_page = thread_page, url = thread_link)
+  content <- get_textual_content(thread_page = thread_page, url = thread_link, length = length(date))
+  required_length <- max(c(length(date), length(author), length(content)))
+  length(date) <- required_length
+  length(time) <- required_length
+  length(author) <- required_length
+  length(content) <- required_length
+
   tibble::tibble(
       thread = thread_link,
       date = date,
-      time = get_date_time(thread_page = thread_page, url = thread_link) %>% purrr::pluck(2),
-      author = get_author(thread_page = thread_page, url = thread_link),
-      content = get_textual_content(thread_page = thread_page, url = thread_link, length = length(date))
+      time = time,
+      author = author,
+      content = content
     ) %>%
     dplyr::mutate(quote_ind = dplyr::if_else(stringr::str_detect(content, "skrev.....................följande"),
                                              1,
