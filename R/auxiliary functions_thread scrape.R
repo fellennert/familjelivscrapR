@@ -165,3 +165,13 @@ remove_quotes <- function(content, thread_page){
   purrr::reduce(c) %>%
     stringr::str_squish()
 }
+
+# save output
+
+save_it <- function(folder_name, file_name, output_tbl) {
+
+  if (is.null(file_name) == TRUE) {
+    file_name <- paste0("scrape-", as.character(lubridate::today()))
+  }
+  readr::write_csv(output_tbl, file.path(folder_name, paste0(file_name, ".csv")))
+}

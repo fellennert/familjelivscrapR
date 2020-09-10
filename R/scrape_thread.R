@@ -26,7 +26,7 @@
 #' scrape_thread("/Forum-27-260/m49908859.html")
 #'
 #' @export
-scrape_thread <- function(suffix) {
+scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name = NULL) {
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   thread_pages <- get_pages(thread_link)
   output <- vector(mode = "list", length = length(thread_pages$url))
@@ -55,5 +55,10 @@ scrape_thread <- function(suffix) {
       posting_wo_quote = content_no_quote
     )
   }
-  return(dplyr::bind_rows(output))
+
+  output_tbl <- dplyr::bind_rows(output)
+
+  if (save_it == TRUE || is.null(file_name) == FALSE || is.null(folder_name) == FALSE) save_it(folder_name, file_name, output_tbl)
+
+  return(output_tbl)
 }
