@@ -23,26 +23,37 @@
 #' citation -- and devtoolsstart with "!!!flawed citation!!!".
 #'
 #' @examples
-#' scrape_thread("/Forum-27-260/m49908859.html", quote = FALSE)
+#' scrape_thread("/Forum-27-260/m49908859.html")
 #'
 #' @export
-scrape_thread <- function(suffix, quotes = TRUE) {
+scrape_thread <- function(suffix) {
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
-  if (xml2::read_html(thread_link) %>%
-        rvest::html_nodes(".f-header-community") %>%
-        rvest::html_text() == "Hela forumet") {
-    stop("Thread does apparently not exist anymore.")
+  thread_pages <- get_pages(thread_link)
+  output <- vector(mode = "list", length = length(thread_pages$url))
+
+  for (i in seq_along(output)){
+    date <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(1)
+    time <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(2)
+    author <- get_author(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]])
+    content <- get_textual_content(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]], length = length(date))
+    quoted_user <- get_quoted_user(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]], length = length(date))
+    required_length <- max(c(length(date), length(author), length(content)))
+    length(date) <- required_length
+    length(time) <- required_length
+    length(author) <- required_length
+    length(content) <- required_length
+
+    content_no_quote <- remove_quotes(content, thread_pages$pages[[i]])
+
+    output[[i]] <- tibble::tibble(
+      url = thread_link,
+      date = date,
+      time = time,
+      author_name = author,
+      quoted_user = quoted_user,
+      posting = content,
+      posting_wo_quote = content_no_quote
+    )
   }
-  n_pages <- get_n_pages_thread(thread_link)
-  if (is.na(n_pages) == TRUE) n_pages <- 1
-  links <- build_links_for_threads(thread_link, n_pages)
-  output_tbl <- purrr::map_dfr(links, get_output)
-  if (quotes == TRUE) return(output_tbl)
-  if (quotes == FALSE) {
-    quote_vec <- purrr::map(links, ~{
-      xml2::read_html(.x) %>% get_quotes
-    }) %>%
-      purrr::reduce(c)
-    return(remove_quotes(quote_vec, output_tbl))
-  }
+  return(dplyr::bind_rows(output))
 }

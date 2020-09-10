@@ -98,24 +98,37 @@ get_author <- function(thread_page, url) {
 # content
 
 get_textual_content <- function(thread_page, url, length) {
-  text <- rvest::html_nodes(thread_page, ".message") %>%
+  content <- rvest::html_nodes(thread_page, ".message") %>%
     rvest::html_text() %>%
     stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_remove_all("\t") %>%
+    stringr::str_to_lower() %>%
+    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
     stringr::str_squish()
 
   if (stringr::str_detect(url, "-1.html$") == FALSE) {
-    text <- text[-1]
+    content <- content[-1]
+  }
+  if (length(content) != length) {
+    content <- content[1:length]
+  }
+  return(content)
+}
+
+get_quoted_user <- function(thread_page, url, length){
+  text <- rvest::html_nodes(thread_page, ".message") %>%
+    rvest::html_text() %>%
+    stringr::str_trim() %>%
+    stringr::str_remove_all("\n") %>%
+    stringr::str_remove_all("\t")
+  if (stringr::str_detect(url, "-1.html$") == FALSE) {
+    content <- content[-1]
   }
   if (length(text) != length) {
     text <- text[1:length]
   }
-  return(text)
-}
-
-get_quoted_user <- function(content){
-  temp <- stringr::str_split(content, "^* skrev [2][0][0-2][0-9]", 2)
+  temp <- stringr::str_split(text, "^* skrev [2][0][0-2][0-9]", 2)
   output <- character(length = length(temp))
   for (i in seq_along(temp)) {
     if (length(temp[[i]]) == 1) output[[i]] <- NA
@@ -129,9 +142,11 @@ get_quoted_user <- function(content){
 remove_quotes <- function(content, thread_page){
   quotes <- rvest::html_nodes(thread_pages$pages[[i]], ".quote") %>%
     rvest::html_text() %>%
-    stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
+    stringr::str_remove_all("\r") %>%
     stringr::str_remove_all("\t") %>%
+    stringr::str_to_lower() %>%
+    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
     stringr::str_squish() %>%
     stringr::str_c(collapse = "|")
 
@@ -149,36 +164,4 @@ remove_quotes <- function(content, thread_page){
   ) %>%
   purrr::reduce(c) %>%
     stringr::str_squish()
-}
-
-### final function
-
-scrape_thread <- function(thread_link) {
-  thread_pages <- get_pages(thread_link)
-  output <- vector(mode = "list", length = length(thread_pages$url))
-
-  for (i in seq_along(output)){
-    date <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(1)
-    time <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(2)
-    author <- get_author(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]])
-    content <- get_textual_content(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]], length = length(date))
-    required_length <- max(c(length(date), length(author), length(content)))
-    length(date) <- required_length
-    length(time) <- required_length
-    length(author) <- required_length
-    length(content) <- required_length
-
-    content_no_quote <- remove_quotes(content, thread_pages$pages[[i]])
-
-    output[[i]] <- tibble::tibble(
-      url = thread_link,
-      date = date,
-      time = time,
-      author_name = author,
-      quoted_user = get_quoted_user(content),
-      posting = content,
-      posting_wo_quote = content_no_quote
-    )
-  }
-  return(dplyr::bind_rows(output))
 }
