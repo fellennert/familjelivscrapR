@@ -53,17 +53,16 @@ I am interested in postings that are in economy and society sections. First, I n
 The second step now is to get all the threads that are within this section. Thereafter, I can filter the ones out whose names do not contain relevant keywords. However, the Corona pandemic really started to gain traction in the public discourse in mid February. Hence, I do not need to scrape threads that were started before February 1. I can achieve this by providing the date in the `thread_start_date()` argument. Thereafter, I look for keywords that hint on COVID19-related content.
 
 ```{r warning=FALSE}
-covid_keywords <- paste(c("corona", "pandemi", "covid"), sep = "|")
-(threads <- purrr::map_dfr(section_suffix, ~{
-  get_threads(suffix = .x, thread_start_date = "2020-02-01")
-  }) %>% 
-  dplyr::filter(stringr::str_detect(name, stringr::regex(covid_keywords, ignore_case = TRUE))) %>% 
-  dplyr::pull(link))
+covid_keywords <- paste(c("corona", "pandemi", "covid"), collapse = "|")
+(threads <- purrr::map_dfr(section_suffix, get_threads, thread_start_date = "2020-02-01") %>% 
+  dplyr::filter(stringr::str_detect(thread_name, stringr::regex(covid_keywords, ignore_case = TRUE))) %>% 
+  dplyr::pull(thread_link))
 ```
 
 Now, the threads can be scraped (disclaimer: because they have to be scraped from anew every time this document is knit, I will just exemplify the process by scraping one of them):
 
 ```{r}
-(covid_content <- purrr::map_dfr(threads[1], scrape_thread))
+(covid_content <- purrr::map(threads[2], scrape_thread) %>% purrr::pluck(1))
 ```
 
+?stringr::str_detect
