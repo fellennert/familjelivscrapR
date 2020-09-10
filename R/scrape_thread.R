@@ -23,7 +23,7 @@
 #' citation -- and devtoolsstart with "!!!flawed citation!!!".
 #'
 #' @examples
-#' scrape_thread("/Forum-27-260/m49908859.html")
+#' scrape_thread(suffix = "/Forum-19-421/m57293216.html", folder_name = "sandbox", file_name = "1")
 #'
 #' @export
 scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name = NULL) {
