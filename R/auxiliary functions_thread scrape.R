@@ -9,96 +9,128 @@ get_pages <- function(thread_link){
   for (i in seq_along(links)){
     links[[i]] <- paste0(stringr::str_sub(thread_link, end = -6), "-", i, ".html")
   }
-  return(list(pages = purrr::map(links, xml2::read_html), url = links))
+  return(purrr::map(links, xml2::read_html))
 }
 
 # date and time
-get_date_time <- function(thread_page, url) {
-  today <- as.character(lubridate::today())
-  yesterday <- as.character(lubridate::today()-1)
-  day_before_yesterday <- as.character(lubridate::today()-2)
+# date helper functions
+extract_day <- function(date){
+  day <- date %>%
+    stringr::str_sub(end = 2L) %>%
+    stringr::str_remove(" ")
+  if (stringr::str_length(day) == 1) day <- paste0("0", day)
+  return(day)
+}
+
+extract_month <- function(date){
   months_tbl <- tibble::tibble(
     months_chr = c("jan", "feb", "mar", "apr", "maj", "jun",
-                  "jul", "aug", "sep", "okt", "nov", "dec", "xyz"),
-    months_num = c(1:12, 0)
+                  "jul", "aug", "sep", "okt", "nov", "dec"),
+    months_num = c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
   )
-  month_pattern <- paste(months_tbl$months_chr, collapse = "|")
+  date %>%
+    stringr::str_extract_all(pattern = paste(months_tbl$months_chr, collapse = "|")) %>%
+    as.character() %>%
+    tibble::enframe(name = NULL, value = "months_chr") %>%
+    dplyr::left_join(months_tbl, by = "months_chr") %>%
+    dplyr::pull(2)
+}
 
-  date <- rvest::html_nodes(thread_page, ".entry-info .date") %>%
+extract_year <- function(date){
+  raw_year <- date %>%
+    stringr::str_sub(start = 3L)
+  if (stringr::str_detect(raw_year, "[:digit:]") == TRUE) {
+    return(stringr::str_extract_all(year, "[:digit:]"))
+  }else{
+    return(lubridate::today() %>%
+             lubridate::year() %>%
+             as.character())
+  }
+}
+
+# get dates
+get_top_date <- function(thread_page){
+  date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
+    rvest::html_text() %>%
+    stringr::str_sub(start = 5L, end = -7L)
+
+  return(paste(extract_year(date),
+               extract_month(date),
+               extract_day(date),
+               collapse = "-")  %>%
+    stringr::str_extract_all("[:digit:]") %>%
+    purrr::map_chr(~{
+      year <- paste(.x[1:4], collapse = "")
+      month <- paste(.x[5:6], collapse = "")
+      day <- paste(.x[7:8], collapse = "")
+      paste(year, month, day, collapse = " ")
+    }) %>%
+    stringr::str_replace_all(" ", "-") %>%
+    lubridate::ymd())
+}
+
+
+get_date <- function(thread_page){
+  rvest::html_nodes(thread_page, ".entry-info") %>%
+    rvest::html_text() %>%
+    stringr::str_remove_all("\n|\t") %>%
+    stringr::str_split_fixed("#", 2) %>%
+    .[, 1] %>%
+    stringr::str_squish() %>%
+    stringr::str_sub(start = 5L, end = -7L) %>%
+    purrr::map_chr(~{
+      paste(extract_year(.x),
+            extract_month(.x),
+            extract_day(.x),
+            collapse = " ")
+    }) %>%
+    stringr::str_extract_all("[:digit:]") %>%
+    purrr::map_chr(~{
+      year <- paste(.x[1:4], collapse = "")
+      month <- paste(.x[5:6], collapse = "")
+      day <- paste(.x[7:8], collapse = "")
+      paste(year, month, day, collapse = " ")
+    }) %>%
+    stringr::str_replace_all(" ", "-") %>%
+    lubridate::ymd()
+}
+
+# get times
+get_top_time <- function(thread_page){
+  rvest::html_nodes(thread_page, ".forum-top-date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim() %>%
-    stringr::str_split_fixed("×", 2)
+    stringr::str_extract(pattern = "[0-2][0-9][:][0-5][0-9]") %>%
+    hms::parse_hm()
+}
 
-  date <- date[, 1]
-
-  reply_number <- rvest::html_nodes(thread_page, ".reply-number") %>%
+get_time <- function(thread_page){
+  rvest::html_nodes(thread_page, ".date") %>%
     rvest::html_text() %>%
-    readr::parse_number()
-
-  reference <- reply_number[[1]]
-
-  if (length(reply_number) > length(date)) reply_number <- reply_number[-order(reply_number)[1]]
-  top_date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
-    rvest::html_text()
-
-  if (stringr::str_detect(url, "-1.html$")) {
-    date <- c(top_date, date)
-    reply_number <- c(1, reply_number)
-  }
-
-  date_tbl <- tibble::tibble(date = date, reply_number = reply_number) %>%
-    dplyr::mutate(date = paste0(date, "#0"))%>%
-    dplyr::mutate(time = stringr::str_extract(date, "([0-2][0-9][:][0-5][0-9])"),
-           post_number = purrr::map_chr(stringr::str_split(date, "#"), 2),
-           date = purrr::map_chr(stringr::str_split(date, "([0-2][0-9][:][0-5][0-9])"), 1),
-           date_numeric = dplyr::case_when(stringr::str_detect(date, "Idag") ~ today,
-                                    stringr::str_detect(date, "Igår") ~ yesterday,
-                                    stringr::str_detect(date, "I förrgår") ~ day_before_yesterday),
-           date_day = stringr::str_extract(date, "([0-3][0-9])|([0-9])"),
-           date_year = dplyr::if_else(stringr::str_detect(date, "([2][0][0-2][0-9])"),
-                               stringr::str_extract(date, "([2][0][0-2][0-9])"),
-                               "2020"),
-           date_numeric = lubridate::ymd(date_numeric),
-           date_month_temp = dplyr::if_else(is.na(date_numeric) == TRUE,
-                                     stringr::str_extract(date, month_pattern),
-                                     "0")) %>%
-    dplyr::left_join(months_tbl, by = c("date_month_temp" = "months_chr")) %>%
-    dplyr::mutate(date_month = dplyr::if_else(date_month_temp == 0,
-                                lubridate::month(date_numeric),
-                                months_num),
-           date_day = dplyr::if_else(is.na(date_day) == TRUE,
-                              lubridate::day(date_numeric),
-                              as.integer(date_day)),
-           date = paste(date_year, date_month, date_day, sep = "-")) %>%
-    dplyr::select(date, time, reply_number) %>%
-    dplyr::filter(!is.na(date) & !is.na(time))
-
-  if (stringr::str_detect(url, "-1.html$") == FALSE) {
-    date_tbl <- dplyr::filter(date_tbl, reply_number >= reference)
-  }
-
-  return(date_tbl)
+    stringr::str_remove_all("\n") %>%
+    stringr::str_trim() %>%
+    stringr::str_extract(pattern = "[0-2][0-9][:][0-5][0-9]") %>%
+    hms::parse_hm()
 }
 
 # author's name
-get_author <- function(thread_page, url) {
-  author <- rvest::html_nodes(thread_page, ".compose_avatar_image .compose_avatar_nick") %>%
+get_top_author <- function(thread_page) {
+  rvest::html_nodes(thread_page, ".entry-bottom .compose_avatar_nick") %>%
+    rvest::html_text()
+}
+
+get_author <- function(thread_page) {
+  rvest::html_nodes(thread_page, ".reply .compose_avatar_nick") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_trim()
-  author <- author[author != ""]
-
-  if (stringr::str_detect(url, "-1.html$") == FALSE) {
-    author <- author[-1]
-  }
-  return(author)
 }
 
 # content
 
-get_textual_content <- function(thread_page, url, length) {
-  content <- rvest::html_nodes(thread_page, ".message") %>%
+get_top_content <- function(thread_page){
+  rvest::html_nodes(thread_page, ".entry-bottom .message") %>%
     rvest::html_text() %>%
     stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
@@ -106,36 +138,28 @@ get_textual_content <- function(thread_page, url, length) {
     stringr::str_to_lower() %>%
     stringr::str_replace_all("[^[:alnum:]]", " ") %>%
     stringr::str_squish()
-
-  if (stringr::str_detect(url, "-1.html$") == FALSE) {
-    content <- content[-1]
-  }
-  if (length(content) != length) {
-    content <- content[1:length]
-  }
-  return(content)
 }
 
-get_quoted_user <- function(thread_page, url, length){
-  text <- rvest::html_nodes(thread_page, ".message") %>%
+get_textual_content <- function(thread_page) {
+  rvest::html_nodes(thread_page, ".reply .message") %>%
     rvest::html_text() %>%
     stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
-    stringr::str_remove_all("\t")
-  if (stringr::str_detect(url, "-1.html$") == FALSE) {
-    content <- content[-1]
-  }
-  if (length(text) != length) {
-    text <- text[1:length]
-  }
-  temp <- stringr::str_split(text, "^* skrev [2][0][0-2][0-9]", 2)
-  output <- character(length = length(temp))
-  for (i in seq_along(temp)) {
-    if (length(temp[[i]]) == 1) output[[i]] <- NA
-    if (length(temp[[i]]) == 2) output[[i]] <- temp[[i]][[1]]
-  }
-  output
-  }
+    stringr::str_remove_all("\t") %>%
+    stringr::str_to_lower() %>%
+    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
+    stringr::str_squish()
+}
+
+# quotes
+
+# quoted users
+
+get_quoted_user <- function(posting){
+  user <- stringr::str_split_fixed(posting, "^* skrev [2][0][0-2][0-9]", 2) %>% purrr::compact()
+  if (user[[2]] == "") return(NA_character_)
+  user[[1]]
+}
 
 # remove quotes
 
@@ -150,6 +174,8 @@ remove_quotes <- function(content, thread_page){
     stringr::str_squish() %>%
     stringr::str_c(collapse = "|")
 
+  if (quotes == "") return(content)
+
   for_extract <- stringr::str_locate_all(content, quotes)
   for_removal <- purrr::map2(content, for_extract, ~{
     stringr::str_sub(.x, start = .y[,1], end = .y[, 2])
@@ -162,7 +188,7 @@ remove_quotes <- function(content, thread_page){
     }
   }
   ) %>%
-  purrr::reduce(c) %>%
+    purrr::reduce(c) %>%
     stringr::str_squish()
 }
 
@@ -175,3 +201,31 @@ save_it <- function(folder_name, file_name, output_tbl) {
   }
   readr::write_csv(output_tbl, file.path(folder_name, paste0(file_name, ".csv")))
 }
+
+## summarizing functions
+
+build_top_post <- function(thread_link){
+  page <- xml2::read_html(thread_link)
+  tibble::tibble(
+    url = thread_link,
+    date = get_top_date(page),
+    time = get_top_time(page),
+    author_name = get_top_author(page),
+    quoted_user = NA_character_,
+    posting = get_top_content(page),
+    posting_wo_quote = get_top_content(page)
+  )
+}
+
+build_output_tibble <- function(thread_page, thread_link){
+  tibble::tibble(
+    url = thread_link,
+    date = get_date(thread_page),
+    time = get_time(thread_page),
+    author_name = get_author(thread_page),
+    quoted_user = NA_character_,
+    posting = get_textual_content(thread_page),
+    posting_wo_quote = remove_quotes(content = get_textual_content(thread_page), thread_page = thread_page)
+  )
+}
+

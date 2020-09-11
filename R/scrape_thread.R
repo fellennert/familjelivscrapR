@@ -29,34 +29,14 @@
 scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name = NULL) {
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   thread_pages <- get_pages(thread_link)
-  output <- vector(mode = "list", length = length(thread_pages$url))
 
-  for (i in seq_along(output)){
-    date <- get_date_time(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]]) %>% purrr::pluck(1)
-    time <- get_date_time(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]]) %>% purrr::pluck(2)
-    author <- get_author(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]])
-    content <- get_textual_content(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]], length = length(date))
-    quoted_user <- get_quoted_user(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]], length = length(date))
-    required_length <- max(c(length(date), length(author), length(content)))
-    length(date) <- required_length
-    length(time) <- required_length
-    length(author) <- required_length
-    length(content) <- required_length
+  output_tbl <- dplyr::bind_rows(build_top_post(thread_link),
+                                 purrr::map2_dfr(thread_pages, thread_link, ~{
+                                   build_output_tibble(thread_page = .x,
+                                                       thread_link = .y)
+                                   }))
 
-    content_no_quote <- remove_quotes(content, thread_pages[[1]][[i]])
-
-    output[[i]] <- tibble::tibble(
-      url = thread_link,
-      date = date,
-      time = time,
-      author_name = author,
-      quoted_user = quoted_user,
-      posting = content,
-      posting_wo_quote = content_no_quote
-    )
-  }
-
-  output_tbl <- dplyr::bind_rows(output)
+  output_tbl$quoted_user <- purrr::map_chr(output_tbl$posting, get_quoted_user)
 
   if (is.null(file_name) == FALSE || is.null(folder_name) == FALSE) save_it(folder_name, file_name, output_tbl)
 
