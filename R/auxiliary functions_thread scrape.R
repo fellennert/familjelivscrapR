@@ -9,7 +9,7 @@ get_pages <- function(thread_link){
   for (i in seq_along(links)){
     links[[i]] <- paste0(stringr::str_sub(thread_link, end = -6), "-", i, ".html")
   }
-  list(pages = purrr::map(links, xml2::read_html), url = links)
+  return(list(pages = purrr::map(links, xml2::read_html), url = links))
 }
 
 # date and time
