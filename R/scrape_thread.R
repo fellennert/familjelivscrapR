@@ -32,18 +32,18 @@ scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name
   output <- vector(mode = "list", length = length(thread_pages$url))
 
   for (i in seq_along(output)){
-    date <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(1)
-    time <- get_date_time(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]]) %>% purrr::pluck(2)
-    author <- get_author(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]])
-    content <- get_textual_content(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]], length = length(date))
-    quoted_user <- get_quoted_user(thread_page = thread_pages$pages[[i]], url = thread_pages$url[[i]], length = length(date))
+    date <- get_date_time(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]]) %>% purrr::pluck(1)
+    time <- get_date_time(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]]) %>% purrr::pluck(2)
+    author <- get_author(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]])
+    content <- get_textual_content(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]], length = length(date))
+    quoted_user <- get_quoted_user(thread_page = thread_pages[[1]][[i]], url = thread_pages[[2]][[i]], length = length(date))
     required_length <- max(c(length(date), length(author), length(content)))
     length(date) <- required_length
     length(time) <- required_length
     length(author) <- required_length
     length(content) <- required_length
 
-    content_no_quote <- remove_quotes(content, thread_pages$pages[[i]])
+    content_no_quote <- remove_quotes(content, thread_pages[[1]][[i]])
 
     output[[i]] <- tibble::tibble(
       url = thread_link,
@@ -58,7 +58,7 @@ scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name
 
   output_tbl <- dplyr::bind_rows(output)
 
-  if (save_it == TRUE || is.null(file_name) == FALSE || is.null(folder_name) == FALSE) save_it(folder_name, file_name, output_tbl)
+  if (is.null(file_name) == FALSE || is.null(folder_name) == FALSE) save_it(folder_name, file_name, output_tbl)
 
   return(output_tbl)
 }

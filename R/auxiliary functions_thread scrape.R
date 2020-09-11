@@ -140,7 +140,7 @@ get_quoted_user <- function(thread_page, url, length){
 # remove quotes
 
 remove_quotes <- function(content, thread_page){
-  quotes <- rvest::html_nodes(thread_pages$pages[[i]], ".quote") %>%
+  quotes <- rvest::html_nodes(thread_page, ".quote") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n") %>%
     stringr::str_remove_all("\r") %>%
