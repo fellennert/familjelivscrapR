@@ -40,7 +40,7 @@ extract_year <- function(date){
   raw_year <- date %>%
     stringr::str_sub(start = 3L)
   if (stringr::str_detect(raw_year, "[:digit:]") == TRUE) {
-    return(stringr::str_extract_all(year, "[:digit:]"))
+    return(stringr::str_extract_all(raw_year, "[:digit:]"))
   }else{
     return(lubridate::today() %>%
              lubridate::year() %>%
@@ -52,32 +52,30 @@ extract_year <- function(date){
 get_top_date <- function(thread_page){
   date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
     rvest::html_text() %>%
-    stringr::str_sub(start = 5L, end = -7L)
+    stringr::str_remove_all("Mån|Tis|Ons|Tors|Fre|Lör|Sön") %>%
+    stringr::str_sub(end = -7L)
 
   return(paste(extract_year(date),
                extract_month(date),
                extract_day(date),
-               collapse = "-")  %>%
+               collapse = " ")  %>%
     stringr::str_extract_all("[:digit:]") %>%
     purrr::map_chr(~{
-      year <- paste(.x[1:4], collapse = "")
-      month <- paste(.x[5:6], collapse = "")
-      day <- paste(.x[7:8], collapse = "")
-      paste(year, month, day, collapse = " ")
+      year <- paste0(.x[1], .x[2], .x[3], .x[4], collapse = "")
+      month <- paste0(.x[5], .x[6], collapse = "")
+      day <- paste0(.x[7], .x[8], collapse = "")
+      paste(year, month, day, sep = "-")
     }) %>%
-    stringr::str_replace_all(" ", "-") %>%
     lubridate::ymd())
 }
 
-
 get_date <- function(thread_page){
-  rvest::html_nodes(thread_page, ".entry-info") %>%
+  rvest::html_nodes(thread_page, ".date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("\n|\t") %>%
-    stringr::str_split_fixed("#", 2) %>%
-    .[, 1] %>%
+    stringr::str_remove_all("Mån|Tis|Ons|Tors|Fre|Lör|Sön") %>%
     stringr::str_squish() %>%
-    stringr::str_sub(start = 5L, end = -7L) %>%
+    stringr::str_sub(end = -7L) %>%
     purrr::map_chr(~{
       paste(extract_year(.x),
             extract_month(.x),
@@ -86,12 +84,11 @@ get_date <- function(thread_page){
     }) %>%
     stringr::str_extract_all("[:digit:]") %>%
     purrr::map_chr(~{
-      year <- paste(.x[1:4], collapse = "")
-      month <- paste(.x[5:6], collapse = "")
-      day <- paste(.x[7:8], collapse = "")
-      paste(year, month, day, collapse = " ")
+      year <- paste0(.x[1], .x[2], .x[3], .x[4], collapse = "")
+      month <- paste0(.x[5], .x[6], collapse = "")
+      day <- paste0(.x[7], .x[8], collapse = "")
+      paste(year, month, day, sep = "-")
     }) %>%
-    stringr::str_replace_all(" ", "-") %>%
     lubridate::ymd()
 }
 

@@ -42,3 +42,4 @@ scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name
 
   return(output_tbl)
 }
+
