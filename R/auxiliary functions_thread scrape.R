@@ -54,7 +54,8 @@ get_top_date <- function(thread_page){
   date <- rvest::html_nodes(thread_page, ".forum-top-date") %>%
     rvest::html_text() %>%
     stringr::str_remove_all("Mån|Tis|Ons|Tors|Fre|Lör|Sön") %>%
-    stringr::str_sub(end = -7L)
+    stringr::str_sub(end = -7L) %>%
+    stringr::str_squish()
 
   return(paste(extract_year(date),
                extract_month(date),
