@@ -5,6 +5,7 @@ get_pages <- function(thread_link){
   n_pages <- xml2::read_html(thread_link) %>%
     rvest::html_node("#formupdate .selected a") %>%
     rvest::html_text()
+  if (is.na(n_pages)) n_pages <- 1
   links <- character(length = n_pages)
   for (i in seq_along(links)){
     links[[i]] <- paste0(stringr::str_sub(thread_link, end = -6), "-", i, ".html")
