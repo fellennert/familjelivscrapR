@@ -30,6 +30,11 @@ scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   thread_pages <- get_pages(thread_link)
 
+  if(thread_pages[[1]] %>%
+       rvest::html_nodes("#f-header-title") %>%
+       rvest::html_text() %>%
+       stringr::str_detect("Hela forumet") == TRUE) stop("Apparently, thread does not exist anymore.")
+
   output_tbl <- dplyr::bind_rows(build_top_post(thread_link),
                                  purrr::map2_dfr(thread_pages, thread_link, ~{
                                    build_output_tibble(thread_page = .x,
