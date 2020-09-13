@@ -140,7 +140,7 @@ get_top_content <- function(thread_page){
 }
 
 get_textual_content <- function(thread_page) {
-  rvest::html_nodes(thread_page, ".reply .message") %>%
+  text <- rvest::html_nodes(thread_page, ".reply .message") %>%
     rvest::html_text() %>%
     stringr::str_trim() %>%
     stringr::str_remove_all("\n") %>%
@@ -148,6 +148,10 @@ get_textual_content <- function(thread_page) {
     stringr::str_to_lower() %>%
     stringr::str_replace_all("[^[:alnum:]]", " ") %>%
     stringr::str_squish()
+
+  if (length(text) > 10) return(unique(text))
+
+  return(text)
 }
 
 # quotes
@@ -217,14 +221,27 @@ build_top_post <- function(thread_link){
 }
 
 build_output_tibble <- function(thread_page, thread_link){
-  tibble::tibble(
-    url = thread_link,
-    date = get_date(thread_page),
-    time = get_time(thread_page),
-    author_name = get_author(thread_page),
-    quoted_user = NA_character_,
-    posting = get_textual_content(thread_page),
-    posting_wo_quote = remove_quotes(content = get_textual_content(thread_page), thread_page = thread_page)
+  tryCatch(
+    tibble::tibble(
+      url = thread_link,
+      date = get_date(thread_page),
+      time = get_time(thread_page),
+      author_name = get_author(thread_page),
+      quoted_user = NA_character_,
+      posting = get_textual_content(thread_page),
+      posting_wo_quote = remove_quotes(content = get_textual_content(thread_page), thread_page = thread_page)
+  ),
+  error = function(e){
+    tibble::tibble(
+      url = thread_link,
+      date = NA_real_,
+      time = NA_real_,
+      author_name = NA_character_,
+      quoted_user = NA_character_,
+      posting = "broken thread page, approximately 10 postings are missing",
+      posting_wo_quote = NA_real_
+    )
+  }
   )
 }
 
