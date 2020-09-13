@@ -65,4 +65,6 @@ Now, the threads can be scraped (disclaimer: because they have to be scraped fro
 (covid_content <- purrr::map(threads[2], scrape_thread) %>% purrr::pluck(1))
 ```
 
-?stringr::str_detect
+# Some notes on the scraping
+
+In my experience, the scraping functions work well for approximately 95 per cent of threads (and more than 99 percent of respective thread pages). But still, even though <gamla.familjeliv.se> is an incredibly basic web page, there are some bugs in it as well. An example would be this page: <http://gamla.familjeliv.se/Forum-26-434/m61706935-157.html>. Here, the "normal" quote function the forum provides the users with has failed and the entire posting was copied in there. This results in the scraper function counting more postings, dates, and times than there actually are -- and would probably go totally unnoticed if it weren't for the author column, which is still correct and only of length 10. In this case, I have not found a proper solution to remove these postings properly. I could have forced the tibble columns to be of the same length (e.g., by setting the length to the length of the shortest vector), but this would result in misassigned postings and, hence, has the potential to distort the results. Therefore, I chose a defensive approach and if there is a problem with the page, the function will only fill in the thread url column and insert "broken thread page, approximately 10 postings are missing" in the posting column. 
