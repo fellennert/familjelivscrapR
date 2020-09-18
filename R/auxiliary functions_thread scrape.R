@@ -234,12 +234,12 @@ build_output_tibble <- function(thread_page, thread_link){
   error = function(e){
     tibble::tibble(
       url = thread_link,
-      date = NA_real_,
-      time = NA_real_,
+      date = lubridate::ymd("1970-01-01"),
+      time = hms::parse_hm("00:00"),
       author_name = NA_character_,
       quoted_user = NA_character_,
       posting = "broken thread page, approximately 10 postings are missing",
-      posting_wo_quote = NA_real_
+      posting_wo_quote = NA_character_
     )
   }
   )
