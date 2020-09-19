@@ -27,6 +27,9 @@
 #'
 #' @export
 scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name = NULL) {
+
+  if (stringr::str_detect(suffix, "^/Medlemsgrupper")) stop("Suffix links to group instead of thread.")
+
   thread_link <- paste0("http://gamla.familjeliv.se", suffix)
   thread_pages <- get_pages(thread_link)
 
