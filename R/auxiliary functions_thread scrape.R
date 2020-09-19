@@ -10,7 +10,16 @@ get_pages <- function(thread_link){
   for (i in seq_along(links)){
     links[[i]] <- paste0(stringr::str_sub(thread_link, end = -6), "-", i, ".html")
   }
-  return(purrr::map(links, ~tryCatch(xml2::read_html(.x), error = function(e) xml2::read_html(.x, options = "HUGE"))))
+  return(purrr::map(links, ~{
+    tryCatch(
+      xml2::read_html(.x),
+      error = function(e){
+        tryCatch(
+          xml2::read_html(.x, options = "HUGE"),
+          error = function(e) return("flawed"))
+      })
+    }
+  ))
 }
 
 # date and time
