@@ -1,32 +1,37 @@
 #' Scrape thread
 #' Returns the threads' content
 #'
-#' @param thread_link A character string. The thread's link.
-#' @param quotes A logical vector indicating how the function should go across
-#' quotes. If set to \code{TRUE}, the default value, they are kept and a column
-#' is added with an indicator whether the posting contains a quote or not. If
-#' set to \code{FALSE}, the function will try to remove them. This is successful
-#' in the majority of cases. Sometimes, however, it fails -- seldom leading the
-#' function to crash. Hence, if \code{quotes = FALSE}, it is advised to use some
-#' sort of "safety net" like, for instance, \code{purrr::safely()}.
+#' @param suffix A character string containing a thread's suffix (which can be
+#' obtained using \code{\link{get_thread_links()}}). Suffixes need to start with
+#' \code{/}.
+#' @param folder_name A character string which specifies the name of the folder
+#' the output should be saved in. The folder's name is added to the path of the
+#' current working directory which can be obtained using \code{getwd()} and
+#' modified with \code{setwd()}. If nothing is specified and
+#' \code{export_csv = TRUE}, the function will export the csv file straight into
+#' the working directory.
+#' @param file_name A character string which specifies the name of the output
+#' file. It is not necessary to add `.csv`. If no file name is provided,
+#' \code{file_name} defaults to \code{scrape_[YYYY-MM-DD].csv}.
+#' @param delay A logical vector, defaults to \code{TRUE}. flashback.org's
+#' robots.txt-file asks for putting a five second delay between each iteration.
+#' You can deliberately ignore this by setting \code{delay = FALSE}. Note that
+#' THIS IS NOT RECOMMENDED!
 #'
-#' @return A tibble with a bunch of columns. \code{thread} contains the url
-#' where you can find the thread containing the posting, \code{date} the date
-#' the posting was created on, \code{time} the time it was created at,
-#' \code{content} its textual content, and \code{quote_ind} indicates whether
-#' it contains quoted content or not. Unfortunately, it is nearly impossible to
-#' remove the quotes in a reasonable manner. If the function is successful,
-#' postings without quotes (either because they did not contain one in the first
-#' place or because the function worked properly) can be found in
-#' \code{content_wo_quote}. If the function was not successful, the entries
-#' where it failed at are also in this column -- probably still contaning the
-#' citation -- and devtoolsstart with "!!!flawed citation!!!".
+#' @return A tibble with the following columns: \code{url} contains the thread's
+#' URL suffix, \code{date} the date the posting was made on, \code{time} the
+#' time the posting was made at, \code{author_name} the respective author's user
+#' name, \code{author_url} the link to their profile (can be scraped using
+#' \code{scrape_user_profile()}), \code{quoted_user} the user name of the user
+#' that is quoted in a posting (\code{NA} if the posting does not contain a
+#' quote), \code{posting} the posting *as is*, i.e., with potential quotes,
+#' \code{posting_wo_quote} the posting with all quotes removed.
 #'
 #' @examples
 #' scrape_thread(suffix = "/Forum-19-421/m57293216.html", folder_name = "sandbox", file_name = "1")
 #'
 #' @export
-scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name = NULL) {
+scrape_thread <- function(suffix, file_name = NULL, folder_name = NULL) {
 
   if (stringr::str_detect(suffix, "^/Medlemsgrupper")) stop("Suffix links to group instead of thread.")
 
