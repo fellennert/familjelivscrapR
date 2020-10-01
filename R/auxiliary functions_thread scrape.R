@@ -167,10 +167,21 @@ get_textual_content <- function(thread_page) {
 
 # quoted users
 
-get_quoted_user <- function(posting){
-  user <- stringr::str_split_fixed(posting, "^* skrev [2][0][0-2][0-9]", 2) %>% purrr::compact()
-  if (user[[2]] == "") return(NA_character_)
-  user[[1]]
+clean_quoted_user <- function(posting, author_name){
+  author_tbl <- tibble(
+    true_name = author_name,
+    cleaned_name = author_name %>%
+    stringr::str_replace_all("[^[:alnum:]]", " ") %>%
+    stringr::str_squish() %>%
+    stringr::str_to_lower()
+  ) %>%
+    distinct(cleaned_name, .keep_all = TRUE) %>%
+    filter(str_detect(cleaned_name, "[:alnum:]"))
+  result <- stringr::str_locate(posting, pattern = paste(author_tbl$cleaned_name, collapse = "|"))
+  temp <- stringr::str_sub(posting, start = result[, 1], end = result[, 2]) %>%
+    enframe(name = NULL, value = "cleaned_name")
+  left_join(temp, author_tbl, by = "cleaned_name") %>%
+    pull("true_name")
 }
 
 # remove quotes

@@ -42,9 +42,10 @@ scrape_thread <- function(suffix, save_it = FALSE, file_name = NULL, folder_name
                                  purrr::map2_dfr(thread_pages, thread_link, ~{
                                    build_output_tibble(thread_page = .x,
                                                        thread_link = .y)
-                                   }))
-
-  output_tbl$quoted_user <- purrr::map_chr(output_tbl$posting, get_quoted_user)
+                                   })) %>%
+  mutate(quoted_user = clean_quoted_user(posting, author_name),
+         quoted_user = case_when(posting == posting_wo_quote ~ NA_character_,
+                                 TRUE ~ quoted_user))
 
   if (is.null(file_name) == FALSE || is.null(folder_name) == FALSE) save_it(folder_name, file_name, output_tbl)
 
